@@ -1,0 +1,99 @@
+import numpy as np
+import math
+import matplotlib.pyplot as plt
+
+plt.rcParams['font.sans-serif'] = ['SimHei']
+plt.rcParams['axes.unicode_minus'] = False
+
+temperature = 150
+lowesttemperature = 0.0001
+M = 150
+iteration = 80000
+
+city = np.loadtxt("1.txt")
+city_num = len(city)
+
+
+def distance_matric(City):
+    dis_mat = []
+    for i in range(city_num):
+        dis_path_each = []
+        for j in range(city_num):
+            dis = math.sqrt(pow(city[i][0] - city[j][0], 2) +
+                            pow(city[i][1] - city[j][1], 2))
+            dis_path_each.append(dis)
+        dis_mat.append(dis_path_each)
+    return dis_mat
+
+
+def distance(matric, path):
+    dis = 0
+    for i in range(len(path) - 1):
+        dis += math.sqrt(pow(matric[path[i + 1]][0] - matric[path[i]][0], 2) +
+                         pow(matric[path[i + 1]][1] - matric[path[i]][1], 2))
+    dis += math.sqrt(pow(matric[len(path) - 1][0] - matric[0][0], 2) +
+                     pow(matric[len(path) - 1][1] - matric[0][1], 2))
+    return dis
+
+
+dis_mat = distance_matric(city)
+path = list(range(city_num))
+dis_path = path
+temperature_now = temperature
+dis = distance(dis_mat, path)
+dis_min = dis
+minpath = path
+
+k = 0
+Y = []
+count_iteration = 0
+while (temperature_now > lowesttemperature):
+    count_m = 0
+    while (count_m < M and count_iteration < iteration):
+        i = j = 0
+        while (i == j):
+            i = np.random.randint(0, city_num - 1)
+            j = np.random.randint(0, city_num - 1)
+        path_new = path.copy()
+        path_new[i], path_new[j] = path_new[j], path_new[i]
+        dis_new = distance(dis_mat, path_new)
+        dis_del = dis_new - dis
+        exp_d = math.exp(-dis_del / temperature_now)
+        rand = np.random.random()
+
+        if dis_del < 0:
+            dis = dis_new
+            path = path_new
+            if dis < dis_min:
+                dis_min = dis
+                k += 1
+                Y.append(dis_new)
+                minpath=path
+        elif exp_d > rand:
+            dis = dis_new
+            path = path_new
+        else:
+            count_m += 1
+        count_iteration += 1
+
+    temperature_now = 0.99 * temperature_now
+
+x = np.arange(0, k)
+
+plt.figure(1)
+plt.xlabel("迭代次数")
+plt.ylabel("目标函数值")
+plt.title("函数进化图")
+plt.plot(x, Y, '-')
+
+plt.figure(2)
+plt.title(dis_min)
+for i in range(city_num - 1):
+    plt.plot([city[minpath[i]][0], city[minpath[i + 1]][0]],
+             [city[minpath[i]][1], city[minpath[i + 1]][1]], "-bo")
+plt.plot([city[minpath[city_num - 1]][0], city[minpath[0]][0]],
+         [city[minpath[city_num - 1]][1], city[0][1]], "-ro")
+plt.show()
+
+print(minpath)
+print(dis_min)
